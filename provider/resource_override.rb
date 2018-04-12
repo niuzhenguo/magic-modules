@@ -29,6 +29,8 @@ module Provider
       extend_string api_resource, :description, @description
     end
 
+    private
+
     # Replace the `object_key` instance variable on `object` by the
     # `override_val`. If `override_val` includes the tag '{{<object_key>}}',
     # this tag will be substituted by the object value.
