@@ -15,7 +15,7 @@ require 'api/object'
 require 'provider/resource_override'
 
 module Provider
-  # A hash of Provider::ResourceOverride objects where the key is the api name for that
+  # A hash of Provider::PropertyOverride objects where the key is the api name for that
   # object.
   #
   # Example usage in a provider.yaml file where you want to extend a resource
@@ -23,12 +23,11 @@ module Provider
   #
   # overrides: !ruby/object:Provider::ResourceOverrides
   #   SomeResource: !ruby/object:Provider::MyProvider::ResourceOverride
-  #     description: |
-  #       {{ description}}
-  #
-  #       A tool-specific description complement
+  #     properties: !ruby/object:Provider::PropertyOverrides
+  #       someProperty: !ruby/object:Provider::Terraform::PropertyOverride
+  #         description: 'foo'
   #   ...
-  class ResourceOverrides < Api::Object
+  class PropertyOverrides < Api::Object
     def consume_api(api)
       @__api = api
     end
@@ -36,7 +35,6 @@ module Provider
     def validate
       return unless @__objects.nil? # allows idempotency of calling validate
       convert_findings_to_hash
-      override_objects unless @__api.nil?
       super
     end
 
@@ -80,29 +78,6 @@ module Provider
         next if var.id2name.start_with?('@__')
         @__objects[var.id2name[1..-1]] = instance_variable_get(var)
         remove_instance_variable(var)
-      end
-    end
-
-    # Applies the tool-specific overrides to the api objects
-    def override_objects
-      @__objects.each do |name, override|
-        api_object = @__api.objects.find { |o| o.name == name }
-        raise "The resource to override must exist #{name}" if api_object.nil?
-        check_property_value 'overrides', override, Provider::ResourceOverride
-        override.apply api_object
-
-        # TODO: Consider moving this to PropertyOverrides
-        override.properties.each do |property_path, property_override|
-          # TODO: Support nested field with the following syntax:
-          # my_field.my_nested_field
-          api_property = api_object.properties.find { |p| p.name == property_path }
-          if api_property.nil?
-            raise "The property to override must exists #{property_path}" \
-              "in resource #{name}"
-          end
-
-          property_override.apply api_property
-        end
       end
     end
   end

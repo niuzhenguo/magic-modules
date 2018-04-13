@@ -12,34 +12,26 @@
 # limitations under the License.
 
 require 'api/object'
-require 'provider/property_overrides'
 
 module Provider
   # Override to an Api::Resource in api.yaml
-  class ResourceOverride < Api::Object
+  class PropertyOverride < Api::Object
     attr_reader :description
-    attr_reader :exclude
-
-    attr_reader :properties
 
     def validate
       super
 
-      @properties ||= Provider::PropertyOverrides.new
-
-      check_property :properties, Provider::PropertyOverrides
-
       check_optional_property :description, String
-      check_optional_property :exclude, :boolean
     end
 
     # Apply this override to the given instance of Api::Resource
-    def apply(api_resource)
-      extend_string api_resource, :description, @description
-
-      override_boolean api_resource, :exclude, @exclude
+    def apply(api_property)
+      extend_string api_property, :description, @description
     end
 
+    # TODO: This method has been copied from ResourceOverride.
+    # Use composition via helper module instead
+    #
     # Replace the `object_key` instance variable on `object` by the
     # `override_val`. If `override_val` includes the tag '{{<object_key>}}',
     # this tag will be substituted by the object value.
@@ -50,12 +42,6 @@ module Provider
       new_val = override_val.gsub "{{#{object_key}}}", object_val
 
       object.instance_variable_set("@#{object_key}", new_val)
-    end
-
-    def override_boolean(object, object_key, override_val)
-      return if override_val.nil?
-
-      object.instance_variable_set("@#{object_key}", override_val)
     end
   end
 end
